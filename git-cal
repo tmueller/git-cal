@@ -33,7 +33,9 @@ $filepath = shift @ARGV;
 
 my @unicode = qw(⬚ ▢ ▤ ▣ ⬛);
 my @colors = ( 237, 139, 40, 190, 1 );
-my @ascii = ( " ", ".", "o", "O", "0" );
+# my @ascii = ( " ", ".", "o", "O", "0" );
+my @ascii = ( "·", "■", "■", "■", "■" );
+# my @ascii = ( "■", "░", "▒", "▓", "█" );
 my @months = qw (Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
 configure(\$period, \$use_ascii, \$use_ansi, \$use_unicode, \$author);
@@ -263,6 +265,7 @@ sub compute_stats {
       q1 => $q1,
       q2 => $q2,
       q3 => $q3,
+
     );
 
 
@@ -293,7 +296,7 @@ sub print_grid {
                           : $val <= $stat{q3} ? 3
                                               : 4;
 
-                print_block($index);
+                print_block($index, $val);
             }
             else {
                 print "  ";
@@ -302,7 +305,8 @@ sub print_grid {
     }
     print "\n\n";
     printf "%" . ( 2 * ( $row_end - $row_start ) + $space - 15 ) . "s", "Less ";    #such that the right borders align
-    print_block($_) foreach ( 0 .. 4 );
+    my @stats = (0, @stat{qw(q1 q2 q3)}, $stat{q3} + 1);
+    print_block($_, $stats[$_]) foreach ( 0 .. 4 );
     print " More\n";
 
     printf "%4d: Total commits\n", $stat{total_commits};
@@ -313,13 +317,13 @@ sub print_grid {
 
 
 sub print_block {
-    my $index = shift;
+    my ($index, $count) = @_;
     $index = 4 if $index > 4;
-    $_
+    my $out
       = ( $format eq "ascii" ) ? "${ascii[$index]} "
       : ( $format eq "unicode" ) ? "${unicode[$index]} "
-      :                            "\e[38;5;$colors[$index]m\x{25fc} \e[0m";
-    print;
+      :                            sprintf("%2i", $count);
+    print "\e[38;5;$colors[$index]m$out\e[0m";
 }
 
 
@@ -402,7 +406,7 @@ sub configure {
 		$key =~ s/calendar\.//;
 		$config{$key} = $value;
 	    }
-	    local @ARGV = (map  { ( "-$_" => $config{$_} ) } 
+	    local @ARGV = (map  { ( "-$_" => $config{$_} ) }
 			   grep { exists $config{$_}       } @wanted);
 	    GetOptions(
 		'period=n'  => $period,
@@ -495,7 +499,7 @@ Print this message.
 
 =head2 USING GIT CONFIG
 
-git-cal uses the git config tool to store configuration on disk.  Similar keys are used to 
+git-cal uses the git config tool to store configuration on disk.  Similar keys are used to
 those listed above with the notable exception being the bundling of ascii, ansi and unicode
 into a "format" key. Examples of the three supported keys are below.
 
